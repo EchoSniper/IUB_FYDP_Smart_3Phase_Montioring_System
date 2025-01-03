@@ -174,7 +174,7 @@ html_content = """
 </head>
 <body>
     <div class="container">
-        <img src="https://kingsleygroup.co/wp-content/uploads/2018/01/iub-logo-2.png" alt="IUB Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/EchoSniper/IUB_FYDP_Finalized_Codes/refs/heads/main/IUB_Logo.png" alt="IUB Logo" class="logo">
         <div class="content">
             <h1>Distribution Line Monitoring System</h1>
             <h2>Independent University, Bangladesh</h2>
