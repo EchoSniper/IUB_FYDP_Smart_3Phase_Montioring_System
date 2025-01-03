@@ -25,180 +25,21 @@ html_content = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distribution Line Monitoring System</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            background: linear-gradient(135deg, #001f3f, #0074D9, #7FDBFF);
-            font-family: 'Poppins', sans-serif; /* Rounded and modern font */
-            color: #ffffff;
-            overflow-x: hidden;
-            min-height: 100vh; /* Ensure full-screen background */
-        }
-
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background-color: rgba(0, 0, 0, 0.8);
-            padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
-            width: 100%;
-            max-width: 1200px;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        .logo {
-            width: 150px;
-            margin-bottom: 10px;
-        }
-
-        h1, h2, p, .clock {
-            font-weight: bold; /* Make the text bold */
-        }
-
-        h1 {
-            font-size: 2rem;
-            margin: 5px 0;
-            text-align: center;
-        }
-
-        h2 {
-            font-size: 1.5rem;
-            margin: 5px 0;
-            color: #d1d1d1;
-            text-align: center;
-        }
-
-        p {
-            font-size: 1.2rem;
-            margin: 5px 0;
-            text-align: center;
-        }
-
-        .readings-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            width: 100%;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .voltage-container, .current-container {
-            flex: 1;
-            min-width: 45%;
-            text-align: center;
-        }
-
-        .reading {
-            background-color: #333;
-            border: 2px solid #0074D9;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            margin-bottom: 10px;
-        }
-
-        .reading span {
-            font-size: 1.4rem;
-            font-weight: bold;
-        }
-
-        .status-container {
-            display: flex;
-            justify-content: space-around;
-            width: 100%;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .status {
-            background-color: #333;
-            border: 2px solid #2ECC40;
-            padding: 15px;
-            border-radius: 10px;
-            font-size: 1.2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 5px;
-            width: 45%;
-        }
-
-        .status span {
-            font-weight: bold;
-        }
-
-        .clock {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-top: 15px;
-            text-align: center;
-        }
-
-        @media (min-width: 768px) {
-            h1 {
-                font-size: 3rem;
-            }
-
-            h2 {
-                font-size: 1.8rem;
-            }
-
-            p {
-                font-size: 1.4rem;
-            }
-
-            .clock {
-                font-size: 1.5rem;
-            }
-
-            .voltage-container, .current-container {
-                min-width: 48%;
-            }
-        }
+        /* Styling code here */
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="https://raw.githubusercontent.com/EchoSniper/IUB_FYDP_Finalized_Codes/refs/heads/main/image-removebg-preview.png" alt="IUB Logo" class="logo">
-        <div class="content">
-            <h1>Distribution Line Monitoring System</h1>
-            <h2>Independent University, Bangladesh</h2>
-            <p>Constructed by "IUB EEE GridGuardians"</p>
-            <p>Raafiu Ashiquzzaman Mahmood, Md. Roman Khan, Taremun Arefin, Salma Islam Mim</p>
-        </div>
-        <div class="readings-container">
-            <div class="voltage-container">
-                <h3>Voltage Readings</h3>
-                <div class="reading">Phase A Voltage: <span id="voltageA">--</span> V</div>
-                <div class="reading">Phase B Voltage: <span id="voltageB">--</span> V</div>
-                <div class="reading">Phase C Voltage: <span id="voltageC">--</span> V</div>
-            </div>
-            <div class="current-container">
-                <h3>Current Readings</h3>
-                <div class="reading">Phase A Current: <span id="currentA">--</span> A</div>
-                <div class="reading">Phase B Current: <span id="currentB">--</span> A</div>
-                <div class="reading">Phase C Current: <span id="currentC">--</span> A</div>
-            </div>
-        </div>
-        <div class="status-container">
-            <div class="status">Status: <span id="status">Normal</span></div>
-            <div class="status">Fault Type: <span id="faultType">No Fault Detected</span></div>
-        </div>
-        <div class="clock" id="clock">Last Checked: 12:00:00</div>
+        <!-- Content here -->
+        <h3>Phase A Voltage: <span id="voltageA"></span> V</h3>
+        <h3>Phase A Current: <span id="currentA"></span> A</h3>
+        <h3>Phase B Voltage: <span id="voltageB"></span> V</h3>
+        <h3>Phase B Current: <span id="currentB"></span> A</h3>
+        <h3>Phase C Voltage: <span id="voltageC"></span> V</h3>
+        <h3>Phase C Current: <span id="currentC"></span> A</h3>
+        <h3>Status: <span id="status"></span></h3>
+        <h3>Fault Type: <span id="faultType"></span></h3>
+        <div id="clock"></div>
     </div>
 
     <script>
@@ -246,7 +87,7 @@ def read_serial_data():
                 if line:
                     print(f"Received data: {line}")
                     values = list(map(float, line.split(",")))
-                    if len(values) == 6:  # Ignore ground current
+                    if len(values) == 6:  # Ignore ground current, and use values for Phase A, B, and C
                         sensor_data["Phase_A_Voltage"] = max(0, values[0] if values[0] >= 50 else 0)
                         sensor_data["Phase_A_Current"] = values[1]
                         sensor_data["Phase_B_Voltage"] = max(0, values[2] if values[2] >= 50 else 0)
@@ -262,9 +103,15 @@ def read_serial_data():
 def handle_client(client_socket):
     """Handle incoming client requests."""
     try:
-        client_socket.sendall("HTTP/1.1 200 OK\r\n".encode())
-        client_socket.sendall("Content-Type: text/html\r\n\r\n".encode())
-        client_socket.sendall(html_content.encode())
+        request = client_socket.recv(1024).decode('utf-8')
+        if request.startswith("GET /data"):  # Check if the request is for data
+            client_socket.sendall("HTTP/1.1 200 OK\r\n".encode())
+            client_socket.sendall("Content-Type: application/json\r\n\r\n".encode())
+            client_socket.sendall(json.dumps(sensor_data).encode())  # Send sensor data as JSON
+        else:
+            client_socket.sendall("HTTP/1.1 200 OK\r\n".encode())
+            client_socket.sendall("Content-Type: text/html\r\n\r\n".encode())
+            client_socket.sendall(html_content.encode())  # Send the HTML page
     except Exception as e:
         print("Error handling client:", e)
     finally:
