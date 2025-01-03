@@ -251,4 +251,39 @@ def read_serial_data():
                         sensor_data["Phase_A_Current"] = values[1]
                         sensor_data["Phase_B_Voltage"] = max(0, values[2] if values[2] >= 50 else 0)
                         sensor_data["Phase_B_Current"] = values[3]
-                        sensor_data["Phase
+                        sensor_data["Phase_C_Voltage"] = max(0, values[4] if values[4] >= 50 else 0)
+                        sensor_data["Phase_C_Current"] = values[5]
+            except ValueError as e:
+                print("Error reading data:", e)
+            time.sleep(1)
+    except serial.SerialException as e:
+        print(f"Error connecting to Arduino: {e}")
+
+def handle_client(client_socket):
+    """Handle incoming client requests."""
+    try:
+        client_socket.sendall("HTTP/1.1 200 OK\r\n".encode())
+        client_socket.sendall("Content-Type: text/html\r\n\r\n".encode())
+        client_socket.sendall(html_content.encode())
+    except Exception as e:
+        print("Error handling client:", e)
+    finally:
+        client_socket.close()
+
+def start_server():
+    """Start the web server to serve the data."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server_socket:
+        server_socket.bind((ip_address, port))
+        server_socket.listen(5)
+        print(f"Server listening on {ip_address}:{port}")
+        while True:
+            client_socket, addr = server_socket.accept()
+            print(f"Connection from {addr}")
+            handle_client(client_socket)
+
+# Start both the serial data reading and web server
+if __name__ == "__main__":
+    # Start serial reading in a separate thread
+    threading.Thread(target=read_serial_data, daemon=True).start()
+    # Start web server
+    start_server()
