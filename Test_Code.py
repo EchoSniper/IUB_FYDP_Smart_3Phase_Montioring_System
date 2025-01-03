@@ -16,7 +16,7 @@ sensor_data = {
     "Phase_C_Current": 0.0
 }
 
-# HTML content for the web page
+# HTML content
 html_content = """
 <!DOCTYPE html>
 <html lang="en">
@@ -247,15 +247,11 @@ def read_serial_data():
                     print(f"Received data: {line}")
                     values = list(map(float, line.split(",")))
                     if len(values) == 6:
-                        # Show the raw serial port reading
-                        print(f"Raw Voltage and Current Readings: {values}")
-
-                        # Update the sensor data dictionary with raw values (keeping voltage values at 0 if negative)
-                        sensor_data["Phase_A_Voltage"] = max(0.0, values[0])
+                        sensor_data["Phase_A_Voltage"] = values[0]
                         sensor_data["Phase_A_Current"] = values[1]
-                        sensor_data["Phase_B_Voltage"] = max(0.0, values[2])
+                        sensor_data["Phase_B_Voltage"] = values[2]
                         sensor_data["Phase_B_Current"] = values[3]
-                        sensor_data["Phase_C_Voltage"] = max(0.0, values[4])
+                        sensor_data["Phase_C_Voltage"] = values[4]
                         sensor_data["Phase_C_Current"] = values[5]
             except Exception as e:
                 print(f"Error reading from serial: {e}")
