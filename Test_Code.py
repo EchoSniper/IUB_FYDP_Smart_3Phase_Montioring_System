@@ -14,7 +14,6 @@ sensor_data = {
     "Phase_B_Current": 0.0,
     "Phase_C_Voltage": 0.0,
     "Phase_C_Current": 0.0,
-    "Ground_Current": 0.0  # Added ground current
 }
 
 # HTML content
@@ -193,7 +192,6 @@ html_content = """
                 <div class="reading">Phase A Current: <span id="currentA">--</span> A</div>
                 <div class="reading">Phase B Current: <span id="currentB">--</span> A</div>
                 <div class="reading">Phase C Current: <span id="currentC">--</span> A</div>
-                <div class="reading">Ground Current: <span id="groundCurrent">--</span> A</div>
             </div>
         </div>
         <div class="status-container">
@@ -219,7 +217,6 @@ html_content = """
                     document.getElementById('currentA').textContent = data.Phase_A_Current;
                     document.getElementById('currentB').textContent = data.Phase_B_Current;
                     document.getElementById('currentC').textContent = data.Phase_C_Current;
-                    document.getElementById('groundCurrent').textContent = data.Ground_Current; // Display ground current
                     document.getElementById('status').textContent = "Normal";  // Customize based on your logic
                     document.getElementById('faultType').textContent = "No Fault Detected";  // Customize based on your logic
                 })
@@ -249,48 +246,9 @@ def read_serial_data():
                 if line:
                     print(f"Received data: {line}")
                     values = list(map(float, line.split(",")))
-                    if len(values) == 7:  # Including ground current
+                    if len(values) == 6:  # Ignore ground current
                         sensor_data["Phase_A_Voltage"] = max(0, values[0] if values[0] >= 50 else 0)
                         sensor_data["Phase_A_Current"] = values[1]
                         sensor_data["Phase_B_Voltage"] = max(0, values[2] if values[2] >= 50 else 0)
                         sensor_data["Phase_B_Current"] = values[3]
-                        sensor_data["Phase_C_Voltage"] = max(0, values[4] if values[4] >= 50 else 0)
-                        sensor_data["Phase_C_Current"] = values[5]
-                        sensor_data["Ground_Current"] = values[6]  # Assuming this value comes from the Arduino
-            except Exception as e:
-                print(f"Error reading from serial: {e}")
-            time.sleep(0.1)
-    except Exception as e:
-        print(f"Error connecting to serial: {e}")
-
-def handle_client(client_socket):
-    """Handle incoming HTTP requests from clients."""
-    request = client_socket.recv(1024).decode()
-    if "GET /data" in request:
-        client_socket.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: application/json\r\n\r\n")
-        client_socket.sendall(json.dumps(sensor_data).encode())
-    else:
-        client_socket.sendall(b"HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n")
-        client_socket.sendall(html_content.encode())
-    client_socket.close()
-
-def start_web_server():
-    """Start the web server to serve the HTML page and sensor data."""
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind((ip_address, port))
-    server.listen(5)
-    print(f"Server listening on {ip_address}:{port}...")
-    
-    while True:
-        client_socket, addr = server.accept()
-        print(f"Connection from {addr}")
-        thread = threading.Thread(target=handle_client, args=(client_socket,))
-        thread.start()
-
-if __name__ == "__main__":
-    # Start serial reading in a separate thread
-    serial_thread = threading.Thread(target=read_serial_data)
-    serial_thread.start()
-
-    # Start web server
-    start_web_server()
+                        sensor_data["Phase
