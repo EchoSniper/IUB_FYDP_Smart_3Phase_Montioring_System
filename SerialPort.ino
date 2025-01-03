@@ -51,19 +51,24 @@ void loop() {
 
   // Send data to Python script in the expected format
   if ((unsigned long)(millis() - previousMillis) >= printPeriod) {
-    previousMillis = millis();
-    Serial.print(phaseCurrents[2], 2); // Phase C Current
-    Serial.print(",");
-    Serial.print(phaseCurrents[1], 2); // Phase B Current
-    Serial.print(",");
-    Serial.print(phaseCurrents[0], 2); // Phase A Current
-    Serial.print(",");
-    Serial.print(phaseVoltages[2], 2); // Phase C Voltage
-    Serial.print(",");
-    Serial.print(phaseVoltages[1], 2); // Phase B Voltage
-    Serial.print(",");
-    Serial.println(phaseVoltages[0], 2); // Phase A Voltage
-  }
+  previousMillis = millis();
+  // Print currents for Ground, Phase C, Phase B, and Phase A
+  Serial.print(phaseCurrents[3], 2); // Ground Phase Current
+  Serial.print(",");
+  Serial.print(phaseCurrents[2], 2); // Phase C Current
+  Serial.print(",");
+  Serial.print(phaseCurrents[1], 2); // Phase B Current
+  Serial.print(",");
+  Serial.print(phaseCurrents[0], 2); // Phase A Current
+  
+  // Print voltages for Phase C, Phase B, and Phase A
+  Serial.print(",");
+  Serial.print(phaseVoltages[2], 2); // Phase C Voltage
+  Serial.print(",");
+  Serial.print(phaseVoltages[1], 2); // Phase B Voltage
+  Serial.print(",");
+  Serial.println(phaseVoltages[0], 2); // Phase A Voltage
+}
 
   delay(10); // Small delay for stability
 }
