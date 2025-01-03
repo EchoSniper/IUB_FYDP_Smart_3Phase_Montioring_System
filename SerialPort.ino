@@ -9,12 +9,12 @@ float currentIntercepts[] = {0.0, 0.0, 0.0, 0.0};  // Calibration intercepts for
 float currentSlopes[] = {0.1, 0.1, 0.1, 0.1};      // Calibration slopes for currents
 
 // Analog Pins
-int currentPins[] = {A0, A1, A2, A3}; // Current for A, B, C, Ground
-int voltagePins[] = {A4, A5, A6};    // Voltages for A, B, C
+int currentPins[] = {A0, A1, A2, A3}; // Current: Ground, Phase A, Phase B, Phase C
+int voltagePins[] = {A4, A5, A6};    // Voltage: Phase A, Phase B, Phase C
 
 // Calculated values
-float phaseCurrents[4]; // Phase currents: A, B, C, Ground
-float phaseVoltages[3]; // Phase voltages: A, B, C
+float phaseCurrents[4]; // Phase currents: Ground, Phase A, Phase B, Phase C
+float phaseVoltages[3]; // Phase voltages: Phase A, Phase B, Phase C
 
 unsigned long printPeriod = 1000; // Print every second
 unsigned long previousMillis = 0;
@@ -49,26 +49,21 @@ void loop() {
     phaseVoltages[i] = phaseVoltages[i] * (40.3231) - 245; // Further calibration
   }
 
-  // Send data to Python script in the expected format
+  // Send JSON data to Python script
   if ((unsigned long)(millis() - previousMillis) >= printPeriod) {
-  previousMillis = millis();
-  // Print currents for Ground, Phase C, Phase B, and Phase A
-  Serial.print(phaseCurrents[3], 2); // Ground Phase Current
-  Serial.print(",");
-  Serial.print(phaseCurrents[2], 2); // Phase C Current
-  Serial.print(",");
-  Serial.print(phaseCurrents[1], 2); // Phase B Current
-  Serial.print(",");
-  Serial.print(phaseCurrents[0], 2); // Phase A Current
-  
-  // Print voltages for Phase C, Phase B, and Phase A
-  Serial.print(",");
-  Serial.print(phaseVoltages[2], 2); // Phase C Voltage
-  Serial.print(",");
-  Serial.print(phaseVoltages[1], 2); // Phase B Voltage
-  Serial.print(",");
-  Serial.println(phaseVoltages[0], 2); // Phase A Voltage
-}
+    previousMillis = millis();
+    
+    // JSON formatted data
+    Serial.print("{");
+    Serial.print("\"Phase_A_Current\":"); Serial.print(phaseCurrents[1], 2); Serial.print(",");
+    Serial.print("\"Phase_B_Current\":"); Serial.print(phaseCurrents[2], 2); Serial.print(",");
+    Serial.print("\"Phase_C_Current\":"); Serial.print(phaseCurrents[3], 2); Serial.print(",");
+    Serial.print("\"Ground_Current\":"); Serial.print(phaseCurrents[0], 2); Serial.print(",");
+    Serial.print("\"Phase_A_Voltage\":"); Serial.print(phaseVoltages[0], 2); Serial.print(",");
+    Serial.print("\"Phase_B_Voltage\":"); Serial.print(phaseVoltages[1], 2); Serial.print(",");
+    Serial.print("\"Phase_C_Voltage\":"); Serial.print(phaseVoltages[2], 2);
+    Serial.println("}");
+  }
 
   delay(10); // Small delay for stability
 }
