@@ -93,6 +93,14 @@ while True:
 
                 # Determine the fault type
                 fault_message = detect_fault(m, n, p, q)
+
+                # Print peak values and fault message
+                print("\n=== Peak Values ===")
+                print(f"Ground Current: Approx = {peak_approx_ground:.2f}, Detail = {peak_detail_ground:.2f}")
+                print(f"Phase A Current: Approx = {peak_approx_pha:.2f}, Detail = {peak_detail_pha:.2f}")
+                print(f"Phase B Current: Approx = {peak_approx_phb:.2f}, Detail = {peak_detail_phb:.2f}")
+                print(f"Phase C Current: Approx = {peak_approx_phc:.2f}, Detail = {peak_detail_phc:.2f}")
+                print("\nFault Detection:")
                 print(fault_message)
 
                 # Clear the current lists to process the next set of data
