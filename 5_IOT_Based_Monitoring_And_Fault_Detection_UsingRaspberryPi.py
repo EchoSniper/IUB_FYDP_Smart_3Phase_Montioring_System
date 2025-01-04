@@ -136,7 +136,7 @@ html_content = """
 
         .status {
             background-color: #333;
-            border: 2px solid #2ECC40;
+            border: 2px solid #0074D9;
             padding: 15px;
             border-radius: 10px;
             font-size: 1.2rem;
@@ -184,7 +184,7 @@ html_content = """
 </head>
 <body>
     <div class="container">
-        <img src="https://kingsleygroup.co/wp-content/uploads/2018/01/iub-logo-2.png" alt="IUB Logo" class="logo">
+        <img src="https://raw.githubusercontent.com/EchoSniper/IUB_FYDP_Smart_3Phase_Montioring_System/refs/heads/main/Logo.png" alt="IUB Logo" class="logo">
         <div class="content">
             <h1>Distribution Line Monitoring System</h1>
             <h2>Independent University, Bangladesh</h2>
@@ -215,35 +215,61 @@ html_content = """
     <script>
         // DWT-based fault detection logic
         function evaluateFault(data) {
+            let status = "Normal";
+            let faultType = "No Fault Detected";
+
+            // Check for overcurrent faults
             if (data.Phase_A_Current > 100 || data.Phase_B_Current > 100 || data.Phase_C_Current > 100) {
-                document.getElementById('status').innerText = 'Fault Detected';
-                document.getElementById('faultType').innerText = 'Overcurrent Fault';
-            } else if (data.Phase_A_Voltage < 200 || data.Phase_B_Voltage < 200 || data.Phase_C_Voltage < 200) {
-                document.getElementById('status').innerText = 'Fault Detected';
-                document.getElementById('faultType').innerText = 'Undervoltage Fault';
-            } else {
-                document.getElementById('status').innerText = 'Normal';
-                document.getElementById('faultType').innerText = 'No Fault Detected';
+                status = "Fault Detected";
+                let overcurrentPhases = [];
+                if (data.Phase_A_Current > 100) overcurrentPhases.push("Phase A");
+                if (data.Phase_B_Current > 100) overcurrentPhases.push("Phase B");
+                if (data.Phase_C_Current > 100) overcurrentPhases.push("Phase C");
+                faultType = `Overcurrent Fault: ${overcurrentPhases.join(", ")}`;
             }
+
+            // Check for undervoltage faults
+            else if (data.Phase_A_Voltage < 200 || data.Phase_B_Voltage < 200 || data.Phase_C_Voltage < 200) {
+                status = "Fault Detected";
+                let undervoltPhases = [];
+                if (data.Phase_A_Voltage < 200) undervoltPhases.push("Phase A");
+                if (data.Phase_B_Voltage < 200) undervoltPhases.push("Phase B");
+                if (data.Phase_C_Voltage < 200) undervoltPhases.push("Phase C");
+                faultType = `Undervoltage Fault: ${undervoltPhases.join(", ")}`;
+            }
+
+            // Check for overvoltage faults
+            else if (data.Phase_A_Voltage > 250 || data.Phase_B_Voltage > 250 || data.Phase_C_Voltage > 250) {
+                status = "Fault Detected";
+                let overvoltPhases = [];
+                if (data.Phase_A_Voltage > 250) overvoltPhases.push("Phase A");
+                if (data.Phase_B_Voltage > 250) overvoltPhases.push("Phase B");
+                if (data.Phase_C_Voltage > 250) overvoltPhases.push("Phase C");
+                faultType = `Overvoltage Fault: ${overvoltPhases.join(", ")}`;
+            }
+
+            // Update the status and fault type
+            document.getElementById("status").innerText = status;
+            document.getElementById("faultType").innerText = faultType;
         }
 
         async function fetchData() {
             try {
-                const response = await fetch('/data');
+                const response = await fetch("/data");
                 const data = await response.json();
 
                 // Update readings
-                document.getElementById('voltageA').innerText = data.Phase_A_Voltage.toFixed(2);
-                document.getElementById('voltageB').innerText = data.Phase_B_Voltage.toFixed(2);
-                document.getElementById('voltageC').innerText = data.Phase_C_Voltage.toFixed(2);
-                document.getElementById('currentA').innerText = data.Phase_A_Current.toFixed(2);
-                document.getElementById('currentB').innerText = data.Phase_B_Current.toFixed(2);
-                document.getElementById('currentC').innerText = data.Phase_C_Current.toFixed(2);
+                document.getElementById("voltageA").innerText = data.Phase_A_Voltage.toFixed(2);
+                document.getElementById("voltageB").innerText = data.Phase_B_Voltage.toFixed(2);
+                document.getElementById("voltageC").innerText = data.Phase_C_Voltage.toFixed(2);
+                document.getElementById("currentA").innerText = data.Phase_A_Current.toFixed(2);
+                document.getElementById("currentB").innerText = data.Phase_B_Current.toFixed(2);
+                document.getElementById("currentC").innerText = data.Phase_C_Current.toFixed(2);
 
                 // Apply fault detection logic
                 evaluateFault(data);
             } catch (error) {
-                console.error('Error fetching data:', error);
+                console.error("Error fetching data:", error);
             }
         }
 
@@ -251,11 +277,13 @@ html_content = """
 
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').innerText = 'Last Checked: ' + now.toLocaleTimeString();
+            document.getElementById("clock").innerText =
+                "Last Checked: " + now.toLocaleTimeString();
         }
 
         setInterval(updateClock, 1000);
     </script>
+
 </body>
 </html>
 
