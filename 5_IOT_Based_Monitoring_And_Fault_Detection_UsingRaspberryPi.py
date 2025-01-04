@@ -23,7 +23,8 @@ sensor_data = {
     "Phase_A_Voltage": 0.0,
     "Phase_B_Voltage": 0.0,
     "Phase_C_Voltage": 0.0,
-    "Fault_Type": "No Fault Detected"
+    "Fault_Type": "No Fault Detected",
+    "Status": "Normal"
 }
 
 # HTML content
@@ -35,12 +36,155 @@ html_content = """
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Distribution Line Monitoring System</title>
     <style>
-        /* CSS styles omitted for brevity, use the same styles as in your original code */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #001f3f, #0074D9, #7FDBFF);
+            font-family: 'Poppins', sans-serif;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 1200px;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .logo {
+            width: 150px;
+            margin-bottom: 10px;
+        }
+
+        h1, h2, p, .clock {
+            font-weight: bold;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin: 5px 0;
+            color: #d1d1d1;
+            text-align: center;
+        }
+
+        p {
+            font-size: 1.2rem;
+            margin: 5px 0;
+            text-align: center;
+        }
+
+        .readings-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            width: 100%;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .voltage-container, .current-container {
+            flex: 1;
+            min-width: 45%;
+            text-align: center;
+        }
+
+        .reading {
+            background-color: #333;
+            border: 2px solid #0074D9;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .reading span {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .status-container {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .status {
+            background-color: #333;
+            border: 2px solid #2ECC40;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            width: 45%;
+        }
+
+        .status span {
+            font-weight: bold;
+        }
+
+        .clock {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 3rem;
+            }
+
+            h2 {
+                font-size: 1.8rem;
+            }
+
+            p {
+                font-size: 1.4rem;
+            }
+
+            .clock {
+                font-size: 1.5rem;
+            }
+
+            .voltage-container, .current-container {
+                min-width: 48%;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <img src="https://raw.githubusercontent.com/EchoSniper/IUB_FYDP_Finalized_Codes/refs/heads/main/IUB_Logo.png" alt="IUB Logo" class="logo">
+        <img src="https://kingsleygroup.co/wp-content/uploads/2018/01/iub-logo-2.png" alt="IUB Logo" class="logo">
         <div class="content">
             <h1>Distribution Line Monitoring System</h1>
             <h2>Independent University, Bangladesh</h2>
@@ -62,25 +206,42 @@ html_content = """
             </div>
         </div>
         <div class="status-container">
-            <div class="status">Status: <span id="faultType">No Fault Detected</span></div>
+            <div class="status">Status: <span id="status">Normal</span></div>
+            <div class="status">Fault Type: <span id="faultType">No Fault Detected</span></div>
         </div>
         <div class="clock" id="clock">Last Checked: 12:00:00</div>
     </div>
 
     <script>
+        // DWT-based fault detection logic
+        function evaluateFault(data) {
+            if (data.Phase_A_Current > 100 || data.Phase_B_Current > 100 || data.Phase_C_Current > 100) {
+                document.getElementById('status').innerText = 'Fault Detected';
+                document.getElementById('faultType').innerText = 'Overcurrent Fault';
+            } else if (data.Phase_A_Voltage < 200 || data.Phase_B_Voltage < 200 || data.Phase_C_Voltage < 200) {
+                document.getElementById('status').innerText = 'Fault Detected';
+                document.getElementById('faultType').innerText = 'Undervoltage Fault';
+            } else {
+                document.getElementById('status').innerText = 'Normal';
+                document.getElementById('faultType').innerText = 'No Fault Detected';
+            }
+        }
+
         async function fetchData() {
             try {
                 const response = await fetch('/data');
                 const data = await response.json();
 
                 // Update readings
-                document.getElementById('currentA').innerText = data.Phase_A_Current.toFixed(2);
-                document.getElementById('currentB').innerText = data.Phase_B_Current.toFixed(2);
-                document.getElementById('currentC').innerText = data.Phase_C_Current.toFixed(2);
                 document.getElementById('voltageA').innerText = data.Phase_A_Voltage.toFixed(2);
                 document.getElementById('voltageB').innerText = data.Phase_B_Voltage.toFixed(2);
                 document.getElementById('voltageC').innerText = data.Phase_C_Voltage.toFixed(2);
-                document.getElementById('faultType').innerText = data.Fault_Type;
+                document.getElementById('currentA').innerText = data.Phase_A_Current.toFixed(2);
+                document.getElementById('currentB').innerText = data.Phase_B_Current.toFixed(2);
+                document.getElementById('currentC').innerText = data.Phase_C_Current.toFixed(2);
+
+                // Apply fault detection logic
+                evaluateFault(data);
             } catch (error) {
                 console.error('Error fetching data:', error);
             }
@@ -97,6 +258,8 @@ html_content = """
     </script>
 </body>
 </html>
+
+
 """
 
 # Function to perform DWT
@@ -118,7 +281,7 @@ def detect_fault(m, n, p, q):
         else:
             return "Line to Line Fault Between Phase A and B Detected"
     # Other conditions...
-    return "Unknown Fault Detected"
+    return "No Fault Detected"
 
 def read_serial_data():
     global sensor_data
@@ -154,6 +317,7 @@ def read_serial_data():
 
                         fault = detect_fault(10 * m, 10 * n, 10 * p, 10 * q)
                         sensor_data["Fault_Type"] = fault
+                        sensor_data["Status"] = "Fault Detected" if fault != "No Fault Detected" else "Normal"
 
                         for key in current_data:
                             current_data[key] = current_data[key][1:]
@@ -183,3 +347,4 @@ def start_server():
 # Run the serial reader and server in separate threads
 threading.Thread(target=read_serial_data, daemon=True).start()
 start_server()
+
