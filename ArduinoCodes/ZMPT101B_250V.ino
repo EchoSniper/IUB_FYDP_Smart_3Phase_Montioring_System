@@ -1,50 +1,35 @@
-#include <Filters.h>
+#include <ZMPT101B.h>
 
-float testFrequency = 50;
-int SensorA = 0, SensorB = 0, SensorC = 0;
-float intercept = 0.7;
-float slope = 0.04;
-float current_VoltsA, current_VoltsB, current_VoltsC;
+#define SENSITIVITY 370.0f
+
+// Define voltage sensors for each phase
+ZMPT101B voltageSensorA(A4, 50.0);  // Phase A
+ZMPT101B voltageSensorB(A5, 50.0);  // Phase B
+ZMPT101B voltageSensorC(A6, 50.0);  // Phase C
 
 void setup() {
-  Serial.begin(9600);  // Start serial communication at 9600 baud rate
-  Serial.println("Voltage Readings:");
+  Serial.begin(9600);
+  
+  // Set sensitivity for each sensor
+  voltageSensorA.setSensitivity(SENSITIVITY);
+  voltageSensorB.setSensitivity(SENSITIVITY);
+  voltageSensorC.setSensitivity(SENSITIVITY);
 }
 
 void loop() {
-  RunningStatistics inputStatsA, inputStatsB, inputStatsC;
+  // Read the RMS voltage for each phase
+  float voltageA = voltageSensorA.getRmsVoltage() -20;
+  float voltageB = voltageSensorB.getRmsVoltage()-28;
+  float voltageC = voltageSensorC.getRmsVoltage()-28;
 
-  while (true) {
-    // Read sensor values for phases A, B, and C
-    SensorA = analogRead(A4);
-    SensorB = analogRead(A5);
-    SensorC = analogRead(A6);
+  // Print the voltages for each phase
+  Serial.print("Phase A: ");
+  Serial.println(voltageA);
+  
+  Serial.print("Phase B: ");
+  Serial.println(voltageB);
+  
+  Serial.print("Phase C: ");
+  Serial.println(voltageC);
 
-    // Process sensor inputs for each phase
-    inputStatsA.input(SensorA);
-    inputStatsB.input(SensorB);
-    inputStatsC.input(SensorC);
-
-    // Calculate voltages for each phase
-    current_VoltsA = intercept + slope * inputStatsA.sigma();
-    current_VoltsB = intercept + slope * inputStatsB.sigma();
-    current_VoltsC = intercept + slope * inputStatsC.sigma();
-
-    current_VoltsA = current_VoltsA * 40.3231 - 20;
-    current_VoltsB = current_VoltsB * 40.3231 - 20;
-    current_VoltsC = current_VoltsC * 40.3231 - 30;
-
-    // Print voltages for each phase
-    Serial.print("Phase A Voltage: ");
-    Serial.print(current_VoltsA);
-    Serial.println("V");
-
-    Serial.print("Phase B Voltage: ");
-    Serial.print(current_VoltsB);
-    Serial.println("V");
-
-    Serial.print("Phase C Voltage: ");
-    Serial.print(current_VoltsC);
-    Serial.println("V");
-  }
 }
