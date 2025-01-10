@@ -17,6 +17,7 @@ CONSTANT = 50  # For Phase Constant That might need to be changed based on requi
 NEUTRAL = 2    # Neutral Constant That might need to be changed based on requirement
 
 # Constants For Data Receiving 
+# Update sensor_data to include DWT results
 sensor_data = {
     "Ground_Current": 0.0,
     "Phase_C_Current": 0.0,
@@ -25,9 +26,126 @@ sensor_data = {
     "Phase_A_Voltage": 0.0,
     "Phase_B_Voltage": 0.0,
     "Phase_C_Voltage": 0.0,
+    "DWT_Peak_A": 0.0,
+    "DWT_Peak_B": 0.0,
+    "DWT_Peak_C": 0.0,
+    "DWT_Peak_Ground": 0.0,
     "Fault_Type": "No Fault Detected",
     "Status": "Normal"
 }
+
+# Update the read_serial_data function to calculate and update DWT readings
+# Update the read_serial_data function to include maximum current values during DWT analysis
+def read_serial_data():
+    global sensor_data
+    try:
+        ser = serial.Serial(arduino_port, baud_rate, timeout=1)
+        print("Connected to Arduino...")
+        current_data = {"Ground": [], "PhaseA": [], "PhaseB": [], "PhaseC": []}
+
+        while True:
+            line = ser.readline().decode('utf-8').strip()
+            if line:
+                print(f"Received: {line}")
+                values = list(map(float, line.split(",")))
+                if len(values) == 7:
+                    sensor_data["Ground_Current"] = values[0]
+                    sensor_data["Phase_C_Current"] = values[1]
+                    sensor_data["Phase_B_Current"] = values[2]
+                    sensor_data["Phase_A_Current"] = values[3]
+                    sensor_data["Phase_A_Voltage"] = values[4]
+                    sensor_data["Phase_B_Voltage"] = values[5]
+                    sensor_data["Phase_C_Voltage"] = values[6]
+
+                    current_data["Ground"].append(values[0])
+                    current_data["PhaseA"].append(values[3])
+                    current_data["PhaseB"].append(values[2])
+                    current_data["PhaseC"].append(values[1])
+
+                    if len(current_data["Ground"]) >= 10:
+                        # Perform DWT on each phase and ground
+                        cA_a, cD_a, max_current_a = perform_dwt(current_data["PhaseA"])
+                        cA_b, cD_b, max_current_b = perform_dwt(current_data["PhaseB"])
+                        cA_c, cD_c, max_current_c = perform_dwt(current_data["PhaseC"])
+                        cA_g, cD_g, max_current_g = perform_dwt(current_data["Ground"])
+
+                        # Update sensor_data with DWT results and maximum current values
+                        sensor_data["DWT_Peak_A"] = cA_a
+                        sensor_data["DWT_Peak_B"] = cA_b
+                        sensor_data["DWT_Peak_C"] = cA_c
+                        sensor_data["DWT_Peak_Ground"] = cA_g
+                        sensor_data["Max_Current_A"] = max_current_a
+                        sensor_data["Max_Current_B"] = max_current_b
+                        sensor_data["Max_Current_C"] = max_current_c
+                        sensor_data["Max_Current_Ground"] = max_current_g
+
+                        # Detect faults using DWT results
+                        fault = detect_fault(cA_a, cA_b, cA_c, cA_g)
+                        sensor_data["Fault_Type"] = fault
+                        sensor_data["Status"] = "Fault Detected" if fault != "No Fault Detected" else "Normal"
+
+                        # Keep the last few entries for continuity
+                        for key in current_data:
+                            current_data[key] = current_data[key][1:]
+    except Exception as e:
+        print(f"Serial error: {e}")
+
+
+def perform_dwt(data):
+    # Perform DWT and return the wavelet coefficients and the maximum current value
+    coeffs = pywt.dwt(data, 'db4')
+    cA, cD = coeffs
+    max_current = np.max(np.abs(data))  # Get the maximum current value during the DWT
+    return np.max(np.abs(cA)), np.max(np.abs(cD)), max_current  # Return both DWT peaks and max current
+
+#Return values are the peak values for 5 second time length 
+
+# Function to Detect Fault
+def detect_fault(m, n, p, q):
+    if m > CONSTANT and n > CONSTANT and p > CONSTANT:
+        if q > NEUTRAL:
+            return "Three Phase to Ground Fault (ABC-G) Detected"
+        else:
+            return "Three Phase Fault (ABC) Detected"
+    
+    if m > CONSTANT and n > CONSTANT and p < CONSTANT:
+        if q > NEUTRAL:
+            return "Double Line to Ground Fault (AB-G) Detected"
+        else:
+            return "Line to Line Fault Between Phase A and B Detected"
+    
+    if m > CONSTANT and p > CONSTANT and n < CONSTANT:
+        if q > NEUTRAL:
+            return "Double Line to Ground Fault (AC-G) Detected"
+        else:
+            return "Line to Line Fault Between Phase A and C Detected"
+    
+    if n > CONSTANT and p > CONSTANT and m < CONSTANT:
+        if q > NEUTRAL:
+            return "Double Line to Ground Fault (BC-G) Detected"
+        else:
+            return "Line to Line Fault Between Phase B and C Detected"
+    
+    if m > CONSTANT and n < CONSTANT and p < CONSTANT:
+        if q > NEUTRAL:
+            return "Single Line to Ground Fault (A-G) Detected"
+        else:
+            return "No Fault Detected"
+    
+    if n > CONSTANT and m < CONSTANT and p < CONSTANT:
+        if q > NEUTRAL:
+            return "Single Line to Ground Fault (B-G) Detected"
+        else:
+            return "No Fault Detected"
+    
+    if p > CONSTANT and m < CONSTANT and n < CONSTANT:
+        if q > NEUTRAL:
+            return "Single Line to Ground Fault (C-G) Detected"
+        else:
+            return "No Fault Detected"
+    
+    return "No Fault Detected"
+
 
 # HTML / Website Content 
 html_content = """
@@ -161,6 +279,34 @@ html_content = """
             text-align: center;
         }
 
+        /* Added CSS for DWT Peaks */
+        .dwt-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .dwt-reading {
+            background-color: #333;
+            border: 2px solid #0074D9;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 5px;
+            margin-bottom: 10px;
+        }
+
+        .dwt-reading span {
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
         @media (min-width: 768px) {
             h1 {
                 font-size: 3rem;
@@ -201,12 +347,21 @@ html_content = """
                 <div class="reading">Phase C Voltage: <span id="voltageC">--</span> V</div>
             </div>
             <div class="current-container">
-                <h3>Current Readings</h3>
-                <div class="reading">Phase A Current: <span id="currentA">--</span> A</div>
-                <div class="reading">Phase B Current: <span id="currentB">--</span> A</div>
-                <div class="reading">Phase C Current: <span id="currentC">--</span> A</div>
+                <h3>Max Current Readings</h3>
+                <div class="reading">Phase A Max Current: <span id="currentA">--</span> A</div>
+                <div class="reading">Phase B Max Current: <span id="currentB">--</span> A</div>
+                <div class="reading">Phase C Max Current: <span id="currentC">--</span> A</div>
             </div>
         </div>
+
+        <!-- DWT Peak Values -->
+        <div class="dwt-container">
+            <div class="dwt-reading">DWT Peak Phase A: <span id="dwtPeakA">--</span></div>
+            <div class="dwt-reading">DWT Peak Phase B: <span id="dwtPeakB">--</span></div>
+            <div class="dwt-reading">DWT Peak Phase C: <span id="dwtPeakC">--</span></div>
+            <div class="dwt-reading">DWT Peak Ground: <span id="dwtPeakGround">--</span></div>
+        </div>
+
         <div class="status-container">
             <div class="status">Status: <span id="status">Normal</span></div>
             <div class="status">Fault Type: <span id="faultType">No Fault Detected</span></div>
@@ -220,175 +375,71 @@ html_content = """
             let status = "Normal";
             let faultType = "No Fault Detected";
 
-            // Check for overcurrent faults
-            if (data.Phase_A_Current > 100 || data.Phase_B_Current > 100 || data.Phase_C_Current > 100) {
-                status = "Fault Detected";
-                let overcurrentPhases = [];
-                if (data.Phase_A_Current > 100) overcurrentPhases.push("Phase A");
-                if (data.Phase_B_Current > 100) overcurrentPhases.push("Phase B");
-                if (data.Phase_C_Current > 100) overcurrentPhases.push("Phase C");
-                faultType = `Overcurrent Fault: ${overcurrentPhases.join(", ")}`;
+            // Check for faults based on DWT Peak values
+            if (data.DWT_Peak_A > 50 && data.DWT_Peak_B > 50 && data.DWT_Peak_C > 50) {
+                if (data.DWT_Peak_Ground > 2) {
+                    status = "Fault Detected";
+                    faultType = "Three Phase to Ground Fault (ABC-G) Detected";
+                } else {
+                    status = "Fault Detected";
+                    faultType = "Three Phase Fault (ABC) Detected";
+                }
+            } else if (data.DWT_Peak_A > 50 && data.DWT_Peak_B > 50) {
+                if (data.DWT_Peak_Ground > 2) {
+                    status = "Fault Detected";
+                    faultType = "Double Line to Ground Fault (AB-G) Detected";
+                } else {
+                    status = "Fault Detected";
+                    faultType = "Line to Line Fault Between Phase A and B Detected";
+                }
             }
 
-            // Check for undervoltage faults
-            else if (data.Phase_A_Voltage < 200 || data.Phase_B_Voltage < 200 || data.Phase_C_Voltage < 200) {
-                status = "Fault Detected";
-                let undervoltPhases = [];
-                if (data.Phase_A_Voltage < 200) undervoltPhases.push("Phase A");
-                if (data.Phase_B_Voltage < 200) undervoltPhases.push("Phase B");
-                if (data.Phase_C_Voltage < 200) undervoltPhases.push("Phase C");
-                faultType = `Undervoltage Fault: ${undervoltPhases.join(", ")}`;
-            }
-
-            // Check for overvoltage faults
-            else if (data.Phase_A_Voltage > 250 || data.Phase_B_Voltage > 250 || data.Phase_C_Voltage > 250) {
-                status = "Fault Detected";
-                let overvoltPhases = [];
-                if (data.Phase_A_Voltage > 250) overvoltPhases.push("Phase A");
-                if (data.Phase_B_Voltage > 250) overvoltPhases.push("Phase B");
-                if (data.Phase_C_Voltage > 250) overvoltPhases.push("Phase C");
-                faultType = `Overvoltage Fault: ${overvoltPhases.join(", ")}`;
-            }
-
-            // Update the status and fault type
+            // Update UI
             document.getElementById("status").innerText = status;
             document.getElementById("faultType").innerText = faultType;
         }
 
         async function fetchData() {
             try {
-                const response = await fetch("/data");
+                const response = await fetch("/data");  // Fetch data from backend
                 const data = await response.json();
 
-                // Update readings
+                // Update voltage and current readings
                 document.getElementById("voltageA").innerText = data.Phase_A_Voltage.toFixed(2);
                 document.getElementById("voltageB").innerText = data.Phase_B_Voltage.toFixed(2);
                 document.getElementById("voltageC").innerText = data.Phase_C_Voltage.toFixed(2);
-                document.getElementById("currentA").innerText = data.Phase_A_Current.toFixed(2);
-                document.getElementById("currentB").innerText = data.Phase_B_Current.toFixed(2);
-                document.getElementById("currentC").innerText = data.Phase_C_Current.toFixed(2);
 
-                // Apply fault detection logic
+                // Display maximum current readings
+                document.getElementById("currentA").innerText = data.Max_Current_A.toFixed(2);
+                document.getElementById("currentB").innerText = data.Max_Current_B.toFixed(2);
+                document.getElementById("currentC").innerText = data.Max_Current_C.toFixed(2);
+
+                // Update DWT Peak values
+                document.getElementById("dwtPeakA").innerText = data.DWT_Peak_A.toFixed(2);
+                document.getElementById("dwtPeakB").innerText = data.DWT_Peak_B.toFixed(2);
+                document.getElementById("dwtPeakC").innerText = data.DWT_Peak_C.toFixed(2);
+                document.getElementById("dwtPeakGround").innerText = data.DWT_Peak_Ground.toFixed(2);
+
+                // Evaluate the fault status based on DWT Peaks
                 evaluateFault(data);
             } catch (error) {
                 console.error("Error fetching data:", error);
             }
         }
 
-        setInterval(fetchData, 5000);
+        // Fetch data every 3 seconds to update the display
+        setInterval(fetchData, 3000);
 
-        function updateClock() {
-            const now = new Date();
-            document.getElementById("clock").innerText =
-                "Last Checked: " + now.toLocaleTimeString();
-        }
-
-        setInterval(updateClock, 1000);
+        // Update the clock display every second
+        setInterval(() => {
+            document.getElementById("clock").innerText = `Last Checked: ${new Date().toLocaleTimeString()}`;
+        }, 1000);
     </script>
-
 </body>
 </html>
 
 
 """
-#Applying Wavelet Transformation Using Function
-# Function to perform DWT
-
-def perform_dwt(data):
-    coeffs = pywt.dwt(data, 'db4')
-    cA, cD = coeffs
-    return np.max(np.abs(cA)), np.max(np.abs(cD))
-
-#Return values are the peak values for 5 second time length 
-
-# Function to Detect Fault
-def detect_fault(m, n, p, q):
-    if m > CONSTANT and n > CONSTANT and p > CONSTANT:
-        if q > NEUTRAL:
-            return "Three Phase to Ground Fault (ABC-G) Detected"
-        else:
-            return "Three Phase Fault (ABC) Detected"
-    
-    if m > CONSTANT and n > CONSTANT and p < CONSTANT:
-        if q > NEUTRAL:
-            return "Double Line to Ground Fault (AB-G) Detected"
-        else:
-            return "Line to Line Fault Between Phase A and B Detected"
-    
-    if m > CONSTANT and p > CONSTANT and n < CONSTANT:
-        if q > NEUTRAL:
-            return "Double Line to Ground Fault (AC-G) Detected"
-        else:
-            return "Line to Line Fault Between Phase A and C Detected"
-    
-    if n > CONSTANT and p > CONSTANT and m < CONSTANT:
-        if q > NEUTRAL:
-            return "Double Line to Ground Fault (BC-G) Detected"
-        else:
-            return "Line to Line Fault Between Phase B and C Detected"
-    
-    if m > CONSTANT and n < CONSTANT and p < CONSTANT:
-        if q > NEUTRAL:
-            return "Single Line to Ground Fault (A-G) Detected"
-        else:
-            return "No Fault Detected"
-    
-    if n > CONSTANT and m < CONSTANT and p < CONSTANT:
-        if q > NEUTRAL:
-            return "Single Line to Ground Fault (B-G) Detected"
-        else:
-            return "No Fault Detected"
-    
-    if p > CONSTANT and m < CONSTANT and n < CONSTANT:
-        if q > NEUTRAL:
-            return "Single Line to Ground Fault (C-G) Detected"
-        else:
-            return "No Fault Detected"
-    
-    return "No Fault Detected"
-
-
-def read_serial_data():
-    global sensor_data
-    try:
-        ser = serial.Serial(arduino_port, baud_rate, timeout=1)
-        print("Connected to Arduino...")
-        current_data = {"Ground": [], "PhaseA": [], "PhaseB": [], "PhaseC": []}
-
-        while True:
-            line = ser.readline().decode('utf-8').strip()
-            if line:
-                print(f"Received: {line}")
-                values = list(map(float, line.split(",")))
-                if len(values) == 7:
-                    sensor_data["Ground_Current"] = values[0]
-                    sensor_data["Phase_C_Current"] = values[1]
-                    sensor_data["Phase_B_Current"] = values[2]
-                    sensor_data["Phase_A_Current"] = values[3]
-                    sensor_data["Phase_A_Voltage"] = values[4]
-                    sensor_data["Phase_B_Voltage"] = values[5]
-                    sensor_data["Phase_C_Voltage"] = values[6]
-
-                    current_data["Ground"].append(values[0])
-                    current_data["PhaseA"].append(values[3])
-                    current_data["PhaseB"].append(values[2])
-                    current_data["PhaseC"].append(values[1])
-
-                    if len(current_data["Ground"]) >= 10:
-                        m, _ = perform_dwt(current_data["PhaseA"])
-                        n, _ = perform_dwt(current_data["PhaseB"])
-                        p, _ = perform_dwt(current_data["PhaseC"])
-                        q, _ = perform_dwt(current_data["Ground"])
-
-                        fault = detect_fault(10 * m, 10 * n, 10 * p, 10 * q)
-                        sensor_data["Fault_Type"] = fault
-                        sensor_data["Status"] = "Fault Detected" if fault != "No Fault Detected" else "Normal"
-
-                        for key in current_data:
-                            current_data[key] = current_data[key][1:]
-    except Exception as e:
-        print(f"Serial error: {e}")
-
 def handle_client(client_socket):
     request = client_socket.recv(1024).decode()
     if "GET /data" in request:
@@ -416,88 +467,3 @@ start_server()
 
 #Data For Further Analysis 
 #Naming  CSV files
-wavelet_csv_file = "wavelet_data.csv"
-waveform_csv_file = "waveform_data.csv"
-
-# Writing Headers to CSV files 
-def initialize_csv():
-    with open(wavelet_csv_file, "w", newline="") as wf:
-        wavelet_writer = csv.writer(wf)
-        wavelet_writer.writerow(["PhaseA_cA", "PhaseA_cD", "PhaseB_cA", "PhaseB_cD", 
-                                  "PhaseC_cA", "PhaseC_cD", "Ground_cA", "Ground_cD"])
-    
-    with open(waveform_csv_file, "w", newline="") as wf:
-        waveform_writer = csv.writer(wf)
-        waveform_writer.writerow(["PhaseA", "PhaseB", "PhaseC", "Ground"])
-
-# Save wavelet transformation data to CSV
-def save_wavelet_data(cA_a, cD_a, cA_b, cD_b, cA_c, cD_c, cA_g, cD_g):
-    with open(wavelet_csv_file, "a", newline="") as wf:
-        wavelet_writer = csv.writer(wf)
-        wavelet_writer.writerow([cA_a, cD_a, cA_b, cD_b, cA_c, cD_c, cA_g, cD_g])
-
-# Save waveform data to CSV
-def save_waveform_data(phaseA, phaseB, phaseC, ground):
-    with open(waveform_csv_file, "a", newline="") as wf:
-        waveform_writer = csv.writer(wf)
-        waveform_writer.writerow([phaseA, phaseB, phaseC, ground])
-
-# Modify the read_serial_data function to include CSV logging
-def read_serial_data():
-    global sensor_data
-    try:
-        ser = serial.Serial(arduino_port, baud_rate, timeout=1)
-        print("Connected to Arduino...")
-        current_data = {"Ground": [], "PhaseA": [], "PhaseB": [], "PhaseC": []}
-
-        while True:
-            line = ser.readline().decode('utf-8').strip()
-            if line:
-                print(f"Received: {line}")
-                values = list(map(float, line.split(",")))
-                if len(values) == 7:
-                    sensor_data["Ground_Current"] = values[0]
-                    sensor_data["Phase_C_Current"] = values[1]
-                    sensor_data["Phase_B_Current"] = values[2]
-                    sensor_data["Phase_A_Current"] = values[3]
-                    sensor_data["Phase_A_Voltage"] = values[4]
-                    sensor_data["Phase_B_Voltage"] = values[5]
-                    sensor_data["Phase_C_Voltage"] = values[6]
-
-                    current_data["Ground"].append(values[0])
-                    current_data["PhaseA"].append(values[3])
-                    current_data["PhaseB"].append(values[2])
-                    current_data["PhaseC"].append(values[1])
-
-                    if len(current_data["Ground"]) >= 10:
-                        # Perform DWT on each phase and ground
-                        cA_a, cD_a = perform_dwt(current_data["PhaseA"])
-                        cA_b, cD_b = perform_dwt(current_data["PhaseB"])
-                        cA_c, cD_c = perform_dwt(current_data["PhaseC"])
-                        cA_g, cD_g = perform_dwt(current_data["Ground"])
-
-                        # Save wavelet data to CSV
-                        save_wavelet_data(cA_a, cD_a, cA_b, cD_b, cA_c, cD_c, cA_g, cD_g)
-
-                        # Save waveform data to CSV
-                        save_waveform_data(
-                            current_data["PhaseA"][-1],
-                            current_data["PhaseB"][-1],
-                            current_data["PhaseC"][-1],
-                            current_data["Ground"][-1]
-                        )
-
-                        # Detect faults
-                        fault = detect_fault(10 * cA_a, 10 * cA_b, 10 * cA_c, 10 * cA_g)
-                        sensor_data["Fault_Type"] = fault
-                        sensor_data["Status"] = "Fault Detected" if fault != "No Fault Detected" else "Normal"
-
-                        # Keep the last few entries for continuity
-                        for key in current_data:
-                            current_data[key] = current_data[key][1:]
-    except Exception as e:
-        print(f"Serial error: {e}")
-
-# Initialize CSV files
-initialize_csv()
-
