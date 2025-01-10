@@ -35,7 +35,7 @@
 
         .logo {
             width: 150px;
-            margin-bottom: 10px;
+            margin-bottom: 20px;
         }
 
         h1, h2, p, .clock {
@@ -64,7 +64,7 @@
         .readings-container {
             display: flex;
             flex-wrap: wrap;
-            justify-content: space-between;
+            justify-content: space-around;  /* Updated for better alignment */
             width: 100%;
             gap: 15px;
             margin-bottom: 20px;
@@ -97,9 +97,9 @@
 
         .status-container {
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;  /* Adjusted for better spacing */
             width: 100%;
-            gap: 15px;
+            gap: 20px;
             margin-bottom: 20px;
         }
 
@@ -114,11 +114,30 @@
             justify-content: center;
             align-items: center;
             gap: 5px;
-            width: 45%;
+            width: 30%;
         }
 
         .status span {
             font-weight: bold;
+        }
+
+        .chart-container {
+            width: 100%;
+            max-width: 1200px;
+            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+            margin-top: 20px;
+            margin-bottom: 20px; /* Added bottom margin */
+        }
+
+        canvas {
+            background: #fff;
+            border-radius: 15px;
+            margin: 10px auto;
+            display: block;
+            max-width: 100%;
         }
 
         .clock {
@@ -148,8 +167,13 @@
             .voltage-container, .current-container {
                 min-width: 48%;
             }
+
+            .status {
+                width: 30%;
+            }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
@@ -177,81 +201,106 @@
         <div class="status-container">
             <div class="status">Status: <span id="status">Normal</span></div>
             <div class="status">Fault Type: <span id="faultType">No Fault Detected</span></div>
+            <div class="status">Temperature: <span id="temperature">--</span> &deg;C</div>
+        </div>
+        <div class="chart-container">
+            <canvas id="voltageChart"></canvas>
+            <canvas id="currentChart"></canvas>
         </div>
         <div class="clock" id="clock">Last Checked: 12:00:00</div>
     </div>
 
     <script>
-        // DWT-based fault detection logic
-        function evaluateFault(data) {
-            let status = "Normal";
-            let faultType = "No Fault Detected";
+        const voltageData = [];
+        const currentData = [];
 
-            // Check for overcurrent faults
-            if (data.Phase_A_Current > 100 || data.Phase_B_Current > 100 || data.Phase_C_Current > 100) {
-                status = "Fault Detected";
-                let overcurrentPhases = [];
-                if (data.Phase_A_Current > 100) overcurrentPhases.push("Phase A");
-                if (data.Phase_B_Current > 100) overcurrentPhases.push("Phase B");
-                if (data.Phase_C_Current > 100) overcurrentPhases.push("Phase C");
-                faultType = `Overcurrent Fault: ${overcurrentPhases.join(", ")}`;
-            }
+        const voltageChart = new Chart(document.getElementById("voltageChart"), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Phase A Voltage', data: [], borderColor: 'red', fill: false },
+                    { label: 'Phase B Voltage', data: [], borderColor: 'blue', fill: false },
+                    { label: 'Phase C Voltage', data: [], borderColor: 'green', fill: false }
+                ]
+            },
+            options: { responsive: true, scales: { x: { title: { display: true, text: 'Time' } }, y: { title: { display: true, text: 'Voltage (V)' } } } }
+        });
 
-            // Check for undervoltage faults
-            else if (data.Phase_A_Voltage < 200 || data.Phase_B_Voltage < 200 || data.Phase_C_Voltage < 200) {
-                status = "Fault Detected";
-                let undervoltPhases = [];
-                if (data.Phase_A_Voltage < 200) undervoltPhases.push("Phase A");
-                if (data.Phase_B_Voltage < 200) undervoltPhases.push("Phase B");
-                if (data.Phase_C_Voltage < 200) undervoltPhases.push("Phase C");
-                faultType = `Undervoltage Fault: ${undervoltPhases.join(", ")}`;
-            }
+        const currentChart = new Chart(document.getElementById("currentChart"), {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    { label: 'Phase A Current', data: [], borderColor: 'red', fill: false },
+                    { label: 'Phase B Current', data: [], borderColor: 'blue', fill: false },
+                    { label: 'Phase C Current', data: [], borderColor: 'green', fill: false }
+                ]
+            },
+            options: { responsive: true, scales: { x: { title: { display: true, text: 'Time' } }, y: { title: { display: true, text: 'Current (A)' } } } }
+        });
 
-            // Check for overvoltage faults
-            else if (data.Phase_A_Voltage > 250 || data.Phase_B_Voltage > 250 || data.Phase_C_Voltage > 250) {
-                status = "Fault Detected";
-                let overvoltPhases = [];
-                if (data.Phase_A_Voltage > 250) overvoltPhases.push("Phase A");
-                if (data.Phase_B_Voltage > 250) overvoltPhases.push("Phase B");
-                if (data.Phase_C_Voltage > 250) overvoltPhases.push("Phase C");
-                faultType = `Overvoltage Fault: ${overvoltPhases.join(", ")}`;
-            }
+        // Function to update the readings dynamically
+        function updateReadings() {
+            // Simulating data retrieval
+            const voltageA = (Math.random() * 10 + 210).toFixed(2); // Example voltage range
+            const voltageB = (Math.random() * 10 + 210).toFixed(2); 
+            const voltageC = (Math.random() * 10 + 210).toFixed(2); 
+            const currentA = (Math.random() * 5 + 2).toFixed(2); // Example current range
+            const currentB = (Math.random() * 5 + 2).toFixed(2);
+            const currentC = (Math.random() * 5 + 2).toFixed(2);
+            const temperature = (Math.random() * 5 + 25).toFixed(2); // Example temperature range
+            const status = Math.random() > 0.8 ? 'Fault Detected' : 'Normal';
+            const faultType = status === 'Fault Detected' ? 'Phase Loss' : 'No Fault Detected';
 
-            // Update the status and fault type
+            // Updating the HTML content
+            document.getElementById("voltageA").innerText = voltageA;
+            document.getElementById("voltageB").innerText = voltageB;
+            document.getElementById("voltageC").innerText = voltageC;
+            document.getElementById("currentA").innerText = currentA;
+            document.getElementById("currentB").innerText = currentB;
+            document.getElementById("currentC").innerText = currentC;
+            document.getElementById("temperature").innerText = temperature;
             document.getElementById("status").innerText = status;
             document.getElementById("faultType").innerText = faultType;
+
+            // Adding data points to the charts
+            const timeLabel = new Date().toLocaleTimeString();
+            voltageChart.data.labels.push(timeLabel);
+            currentChart.data.labels.push(timeLabel);
+
+            voltageChart.data.datasets[0].data.push(voltageA);
+            voltageChart.data.datasets[1].data.push(voltageB);
+            voltageChart.data.datasets[2].data.push(voltageC);
+
+            currentChart.data.datasets[0].data.push(currentA);
+            currentChart.data.datasets[1].data.push(currentB);
+            currentChart.data.datasets[2].data.push(currentC);
+
+            if (voltageChart.data.labels.length > 10) {
+                voltageChart.data.labels.shift();
+                voltageChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            if (currentChart.data.labels.length > 10) {
+                currentChart.data.labels.shift();
+                currentChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+
+            voltageChart.update();
+            currentChart.update();
         }
 
-        async function fetchData() {
-            try {
-                const response = await fetch("/data");
-                const data = await response.json();
+        // Update every 5 seconds
+        setInterval(updateReadings, 5000);
 
-                // Update readings
-                document.getElementById("voltageA").innerText = data.Phase_A_Voltage.toFixed(2);
-                document.getElementById("voltageB").innerText = data.Phase_B_Voltage.toFixed(2);
-                document.getElementById("voltageC").innerText = data.Phase_C_Voltage.toFixed(2);
-                document.getElementById("currentA").innerText = data.Phase_A_Current.toFixed(2);
-                document.getElementById("currentB").innerText = data.Phase_B_Current.toFixed(2);
-                document.getElementById("currentC").innerText = data.Phase_C_Current.toFixed(2);
-
-                // Apply fault detection logic
-                evaluateFault(data);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
+        // Function to update the clock
+        function updateClock() {
+            document.getElementById("clock").innerText = "Last Checked: " + new Date().toLocaleTimeString();
         }
 
         // Update the clock every second
-        setInterval(() => {
-            const clock = document.getElementById("clock");
-            const now = new Date();
-            clock.innerText = "Last Checked: " + now.toLocaleTimeString();
-        }, 1000);
-
-        // Fetch data every 5 seconds
-        setInterval(fetchData, 5000);
-        fetchData();  // Initial fetch on page load
+        setInterval(updateClock, 1000);
     </script>
 </body>
 </html>
