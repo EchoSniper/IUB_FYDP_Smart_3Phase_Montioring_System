@@ -1,67 +1,67 @@
-#include <Filters.h> // Library for RMS calculation
+#include <ZMPT101B.h>
 
-// Settings for ZMPT101B Voltage Sensors
-float testFrequency = 50; // Frequency (50Hz or 60Hz)
-float windowLength = 40.0 / testFrequency; // RMS window length
-float voltageIntercepts[] = {-0.04, -0.04, -0.04}; // Calibration intercepts for voltages
-float voltageSlopes[] = {0.0405, 0.0405, 0.0405};  // Calibration slopes for voltages
-float currentIntercepts[] = {0.0, 0.0, 0.0, 0.0};  // Calibration intercepts for currents
-float currentSlopes[] = {0.1, 0.1, 0.1, 0.1};      // Calibration slopes for currents
+#define SENSITIVITY 370.0f
 
-// Analog Pins
-int currentPins[] = {A0, A1, A2, A3}; // Currents: Ground, PhC, PhB, PhA
-int voltagePins[] = {A4, A5, A6};     // Voltages: PhA, PhB, PhC
+// Define voltage sensors for each phase
+ZMPT101B voltageSensorA(A4, 50.0);  // Phase A
+ZMPT101B voltageSensorB(A5, 50.0);  // Phase B
+ZMPT101B voltageSensorC(A6, 50.0);  // Phase C
 
-// Calculated values
-float phaseCurrents[4]; // Phase currents: Ground, PhC, PhB, PhA
-float phaseVoltages[3]; // Phase voltages: PhA, PhB, PhC
+// Pin assignments for ACS712 sensors
+const int sensorPinA = A3;  // Phase A
+const int sensorPinB = A2;  // Phase B
+const int sensorPinC = A1;  // Phase C
+const int sensorPinG = A0;  // Ground
 
-unsigned long updateInterval = 5000; // 5 seconds update interval
-unsigned long previousMillis = 0;
-
-RunningStatistics voltageStats[3]; // RMS stats for voltages
-RunningStatistics currentStats[4]; // RMS stats for currents
+// Variables to store voltage and current readings
+float voltageA, voltageB, voltageC;
+float currentA, currentB, currentC, currentG;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(9600);  // Initialize serial communication
   
-  // Set up RMS calculation window
-  for (int i = 0; i < 3; i++) {
-    voltageStats[i].setWindowSecs(windowLength);
-  }
-  for (int i = 0; i < 4; i++) {
-    currentStats[i].setWindowSecs(windowLength);
-  }
+  // Set sensitivity for each voltage sensor
+  voltageSensorA.setSensitivity(SENSITIVITY);
+  voltageSensorB.setSensitivity(SENSITIVITY);
+  voltageSensorC.setSensitivity(SENSITIVITY);
 }
 
 void loop() {
-  // Read currents
-  for (int i = 0; i < 4; i++) {
-    int rawCurrent = analogRead(currentPins[i]);
-    currentStats[i].input(rawCurrent);
-    phaseCurrents[i] = currentIntercepts[i] + currentSlopes[i] * currentStats[i].sigma();
-  }
+  // Read the RMS voltage for each phase, applying offsets
+  voltageA = voltageSensorA.getRmsVoltage() - 20;
+  voltageB = voltageSensorB.getRmsVoltage() - 28;
+  voltageC = voltageSensorC.getRmsVoltage() - 28;
 
-  // Read voltages
-  for (int i = 0; i < 3; i++) {
-    int rawVoltage = analogRead(voltagePins[i]);
-    voltageStats[i].input(rawVoltage);
-    phaseVoltages[i] = voltageIntercepts[i] + voltageSlopes[i] * voltageStats[i].sigma();
-    phaseVoltages[i] = phaseVoltages[i] * (40.3231); // Calibration factor
-  }
+  // Read raw sensor values from each phase
+  int sensorValueA = analogRead(sensorPinA);
+  int sensorValueB = analogRead(sensorPinB);
+  int sensorValueC = analogRead(sensorPinC);
+  int sensorValueG = analogRead(sensorPinG);
 
-  // Send data every 5 seconds
-  unsigned long currentMillis = millis();
-  if (currentMillis - previousMillis >= updateInterval) {
-    previousMillis = currentMillis;
+  // Convert sensor values to voltage (assuming 5V reference)
+  float voltageA_raw = (sensorValueA * 5.0) / 1023.0;
+  float voltageB_raw = (sensorValueB * 5.0) / 1023.0;
+  float voltageC_raw = (sensorValueC * 5.0) / 1023.0;
+  float voltageG_raw = (sensorValueG * 5.0) / 1023.0;
 
-    // Format: Current_G, Current_C, Current_B, Current_A, Voltage_A, Voltage_B, Voltage_C
-    Serial.print(phaseCurrents[0], 2); Serial.print(","); // Ground Current
-    Serial.print(phaseCurrents[1], 2); Serial.print(","); // PhC Current
-    Serial.print(phaseCurrents[2], 2); Serial.print(","); // PhB Current
-    Serial.print(phaseCurrents[3], 2); Serial.print(","); // PhA Current
-    Serial.print(phaseVoltages[0], 2); Serial.print(","); // PhA Voltage
-    Serial.print(phaseVoltages[1], 2); Serial.print(","); // PhB Voltage
-    Serial.println(phaseVoltages[2], 2); // PhC Voltage
-  }
+  // Convert voltage to current for each phase (ACS712 5A version)
+  currentA = (voltageA_raw - 2.5) * 8 + 3.10;
+  currentB = (voltageB_raw - 2.5) * 8;
+  currentC = (voltageC_raw - 2.5) * 8;
+  currentG = (voltageG_raw - 2.5) * 8;
+
+  // Print current and voltage readings on the same line
+  Serial.print(currentG, 2);   // Ground current
+  Serial.print(", ");
+  Serial.print(currentA, 2);   // Phase A current
+  Serial.print(", ");
+  Serial.print(currentB, 2);   // Phase B current
+  Serial.print(", ");
+  Serial.print(currentC, 2);   // Phase C current
+  Serial.print(", ");
+  Serial.print(voltageA, 2);   // Phase A voltage
+  Serial.print(", ");
+  Serial.print(voltageB, 2);   // Phase B voltage
+  Serial.print(", ");
+  Serial.println(voltageC, 2); // Phase C voltage
 }
