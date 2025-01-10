@@ -7,7 +7,7 @@ import time
 import pywt
 import numpy as np
 import csv
-
+import os 
 # Serial Port Communication Setup
 arduino_port = '/dev/ttyUSB0'  
 baud_rate = 9600
@@ -145,8 +145,57 @@ def detect_fault(m, n, p, q):
             return "No Fault Detected"
     
     return "No Fault Detected"
+lock = threading.Lock()
+
+import csv
+import os
+
+# Define the CSV filename
+csv_filename = "sensor_data.csv"
+
+# Define the header for the CSV file
+csv_header = ["Ground_Current", "Phase_C_Current", "Phase_B_Current", "Phase_A_Current", 
+              "Phase_A_Voltage", "Phase_B_Voltage", "Phase_C_Voltage", "DWT_Peak_A", 
+              "DWT_Peak_B", "DWT_Peak_C", "DWT_Peak_Ground", "Max_Current_A", "Max_Current_B", 
+              "Max_Current_C", "Max_Current_Ground", "Fault_Type", "Status"]
+
+# Check if the file exists, if not create it and write the header
+if not os.path.isfile(csv_filename):
+    with open(csv_filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(csv_header)
+
+def save_to_csv():
+    # This function assumes 'sensor_data' is a dictionary containing the current values
+    try:
+        with open(csv_filename, mode='a', newline='') as file:
+            writer = csv.writer(file)
+            # Write the data from the sensor_data dictionary
+            row = [
+                sensor_data["Ground_Current"],
+                sensor_data["Phase_C_Current"],
+                sensor_data["Phase_B_Current"],
+                sensor_data["Phase_A_Current"],
+                sensor_data["Phase_A_Voltage"],
+                sensor_data["Phase_B_Voltage"],
+                sensor_data["Phase_C_Voltage"],
+                sensor_data["DWT_Peak_A"],
+                sensor_data["DWT_Peak_B"],
+                sensor_data["DWT_Peak_C"],
+                sensor_data["DWT_Peak_Ground"],
+                sensor_data["Max_Current_A"],
+                sensor_data["Max_Current_B"],
+                sensor_data["Max_Current_C"],
+                sensor_data["Max_Current_Ground"],
+                sensor_data["Fault_Type"],
+                sensor_data["Status"]
+            ]
+            writer.writerow(row)
+    except Exception as e:
+        print(f"Error saving to CSV: {e}")
 
 
+# Call save_to_csv in your loop where data is read and processed
 # HTML / Website Content 
 html_content = """
 <!DOCTYPE html>
@@ -399,33 +448,44 @@ html_content = """
             document.getElementById("faultType").innerText = faultType;
         }
 
-        async function fetchData() {
-            try {
-                const response = await fetch("/data");  // Fetch data from backend
-                const data = await response.json();
+    async function fetchData() {
+        try {
+            const response = await fetch("/data");  // Fetch data from backend
+            const data = await response.json();
 
-                // Update voltage and current readings
-                document.getElementById("voltageA").innerText = data.Phase_A_Voltage.toFixed(2);
-                document.getElementById("voltageB").innerText = data.Phase_B_Voltage.toFixed(2);
-                document.getElementById("voltageC").innerText = data.Phase_C_Voltage.toFixed(2);
+            // Apply condition for voltage values below 10
+            const voltageA = data.Phase_A_Voltage < 10 ? 0 : data.Phase_A_Voltage;
+            const voltageB = data.Phase_B_Voltage < 10 ? 0 : data.Phase_B_Voltage;
+            const voltageC = data.Phase_C_Voltage < 10 ? 0 : data.Phase_C_Voltage;
 
-                // Display maximum current readings
-                document.getElementById("currentA").innerText = data.Max_Current_A.toFixed(2);
-                document.getElementById("currentB").innerText = data.Max_Current_B.toFixed(2);
-                document.getElementById("currentC").innerText = data.Max_Current_C.toFixed(2);
+            // Apply condition for current values below 0.1
+            const currentA = data.Max_Current_A < 0.3 ? 0 : data.Max_Current_A;
+            const currentB = data.Max_Current_B < 0.3 ? 0 : data.Max_Current_B;
+            const currentC = data.Max_Current_C < 0.3 ? 0 : data.Max_Current_C;
 
-                // Update DWT Peak values
-                document.getElementById("dwtPeakA").innerText = data.DWT_Peak_A.toFixed(2);
-                document.getElementById("dwtPeakB").innerText = data.DWT_Peak_B.toFixed(2);
-                document.getElementById("dwtPeakC").innerText = data.DWT_Peak_C.toFixed(2);
-                document.getElementById("dwtPeakGround").innerText = data.DWT_Peak_Ground.toFixed(2);
+            // Update voltage and current readings
+            document.getElementById("voltageA").innerText = voltageA.toFixed(2);
+            document.getElementById("voltageB").innerText = voltageB.toFixed(2);
+            document.getElementById("voltageC").innerText = voltageC.toFixed(2);
 
-                // Evaluate the fault status based on DWT Peaks
-                evaluateFault(data);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-            }
+            // Display maximum current readings
+            document.getElementById("currentA").innerText = currentA.toFixed(2);
+            document.getElementById("currentB").innerText = currentB.toFixed(2);
+            document.getElementById("currentC").innerText = currentC.toFixed(2);
+
+            // Update DWT Peak values
+            document.getElementById("dwtPeakA").innerText = data.DWT_Peak_A.toFixed(2);
+            document.getElementById("dwtPeakB").innerText = data.DWT_Peak_B.toFixed(2);
+            document.getElementById("dwtPeakC").innerText = data.DWT_Peak_C.toFixed(2);
+            document.getElementById("dwtPeakGround").innerText = data.DWT_Peak_Ground.toFixed(2);
+
+            // Evaluate the fault status based on DWT Peaks
+            evaluateFault(data);
+        } catch (error) {
+            console.error("Error fetching data:", error);
         }
+    }
+
 
         // Fetch data every 3 seconds to update the display
         setInterval(fetchData, 3000);
@@ -464,6 +524,3 @@ def start_server():
 threading.Thread(target=read_serial_data, daemon=True).start()
 start_server()
 
-
-#Data For Further Analysis 
-#Naming  CSV files
