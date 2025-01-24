@@ -5,7 +5,7 @@ import pywt
 import matplotlib.pyplot as plt
 
 # Load Data from CSV File
-filename = 'your_file.csv'  # Replace 'your_file.csv' with your actual file name
+filename = 'TwoPhaseGround.csv'  
 data = pd.read_csv(filename, header=None)
 
 # Assigning columns to phases
@@ -23,6 +23,47 @@ coefA = wavelet_decomposition(R)
 coefB = wavelet_decomposition(B)
 coefC = wavelet_decomposition(Y)
 coefN = wavelet_decomposition(N)
+# Max Value of Coefficients
+m = max(coefA)
+n = max(coefB)
+p = max(coefC)
+q = max(coefN)
+
+print('Max Values:')
+print(f'Phase A: {m}')
+print(f'Phase B: {n}')
+print(f'Phase C: {p}')
+print(f'Ground: {q}')
+
+
+# Conditions for Fault Types
+constant = 200
+neutral = 2
+
+if m > constant and n > constant and p > constant and q > neutral:
+    print("Three Phase to Ground Fault is Detected")
+elif m > constant and n > constant and p > constant and q < neutral:
+    print("Three Phase Fault is Detected")
+elif m > constant and n > constant and p < constant and q > neutral:
+    print("Double Line to Ground Fault (AB-G) is Detected")
+elif m > constant and n < constant and p > constant and q > neutral:
+    print("Double Line to Ground Fault (AC-G) is Detected")
+elif m < constant and n > constant and p > constant and q > neutral:
+    print("Double Line to Ground Fault (BC-G) is Detected")
+elif m > constant and n > constant and p < constant and q < neutral:
+    print("Line to Line Fault Between Phase A and B is Detected")
+elif m > constant and n < constant and p > constant and q < neutral:
+    print("Line to Line Fault Between Phase A and C is Detected")
+elif m < constant and n > constant and p > constant and q < neutral:
+    print("Line to Line Fault Between Phase B and C is Detected")
+elif m > constant and n < constant and p < constant and q > neutral:
+    print("Single Line to Ground Fault in Phase A is Detected")
+elif m < constant and n > constant and p < constant and q > neutral:
+    print("Single Line to Ground Fault in Phase B is Detected")
+elif m < constant and n < constant and p > constant and q > neutral:
+    print("Single Line to Ground Fault in Phase C is Detected")
+elif m < constant and n < constant and p < constant and q < neutral:
+    print("No Fault is Detected. System is Normal")
 
 # Graph Plot
 plt.figure(figsize=(10, 8))
@@ -54,43 +95,8 @@ plt.ylabel('Amplitude')
 plt.tight_layout()
 plt.show()
 
-# Max Value of Coefficients
-m = 10 * max(coefA)
-n = 10 * max(coefB)
-p = 10 * max(coefC)
-q = 10 * max(coefN)
 
-print('Max Values:')
-print(f'Phase A: {m}')
-print(f'Phase B: {n}')
-print(f'Phase C: {p}')
-print(f'Ground: {q}')
 
-# Conditions for Fault Types
-constant = 50
-neutral = 2
 
-if m > constant and n > constant and p > constant and q > neutral:
-    print("Three Phase to Ground Fault is Detected")
-elif m > constant and n > constant and p > constant and q < neutral:
-    print("Three Phase Fault is Detected")
-elif m > constant and n > constant and p < constant and q > neutral:
-    print("Double Line to Ground Fault (AB-G) is Detected")
-elif m > constant and n < constant and p > constant and q > neutral:
-    print("Double Line to Ground Fault (AC-G) is Detected")
-elif m < constant and n > constant and p > constant and q > neutral:
-    print("Double Line to Ground Fault (BC-G) is Detected")
-elif m > constant and n > constant and p < constant and q < neutral:
-    print("Line to Line Fault Between Phase A and B is Detected")
-elif m > constant and n < constant and p > constant and q < neutral:
-    print("Line to Line Fault Between Phase A and C is Detected")
-elif m < constant and n > constant and p > constant and q < neutral:
-    print("Line to Line Fault Between Phase B and C is Detected")
-elif m > constant and n < constant and p < constant and q > neutral:
-    print("Single Line to Ground Fault in Phase A is Detected")
-elif m < constant and n > constant and p < constant and q > neutral:
-    print("Single Line to Ground Fault in Phase B is Detected")
-elif m < constant and n < constant and p > constant and q > neutral:
-    print("Single Line to Ground Fault in Phase C is Detected")
-elif m < constant and n < constant and p < constant and q < neutral:
-    print("No Fault is Detected. System is Normal")
+
+
