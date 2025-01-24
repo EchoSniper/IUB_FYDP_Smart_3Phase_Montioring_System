@@ -1,188 +1,96 @@
-%% Coded by Raafiu Ashiquzzaman Mahmood 2010732 
-clear all; close all; clc;
+# Coded by Raafiu Ashiquzzaman Mahmood 2010732
+import numpy as np
+import pandas as pd
+import pywt
+import matplotlib.pyplot as plt
 
-%% Load Data from CSV File
-filename = 'your_file.csv'; % Replace 'your_file.csv' with your actual file name
-data = readmatrix(filename);
+# Load Data from CSV File
+filename = 'your_file.csv'  # Replace 'your_file.csv' with your actual file name
+data = pd.read_csv(filename, header=None)
 
-% Assigning columns to phases
-R = data(:, 1); % Phase A (Column 1)
-B = data(:, 2); % Phase B (Column 2)
-Y = data(:, 3); % Phase C (Column 3)
-N = data(:, 4); % Ground (Column 4)
+# Assigning columns to phases
+R = data.iloc[:, 0].values  # Phase A (Column 1)
+B = data.iloc[:, 1].values  # Phase B (Column 2)
+Y = data.iloc[:, 2].values  # Phase C (Column 3)
+N = data.iloc[:, 3].values  # Ground (Column 4)
 
-%% Applying Wavelet Decomposition of Current Reading
-[cA, LA] = wavedec(R, 1, 'db4');
-[cB, LB] = wavedec(B, 1, 'db4');
-[cC, LC] = wavedec(Y, 1, 'db4');
-[cN, LN] = wavedec(N, 1, 'db4');
+# Applying Wavelet Decomposition of Current Reading
+def wavelet_decomposition(signal):
+    coeffs = pywt.wavedec(signal, 'db4', level=1)
+    return coeffs[1]  # Detail coefficients (Level 1)
 
-%% Coefficients of Current Values
-coefA = detcoef(cA, LA, 1); % Coefficients for Phase A
-coefB = detcoef(cB, LB, 1); % Coefficients for Phase B
-coefC = detcoef(cC, LC, 1); % Coefficients for Phase C
-coefN = detcoef(cN, LN, 1); % Coefficients for Ground
+coefA = wavelet_decomposition(R)
+coefB = wavelet_decomposition(B)
+coefC = wavelet_decomposition(Y)
+coefN = wavelet_decomposition(N)
 
-%% Graph Plot
-figure;
-subplot(4, 1, 1);
-plot(coefA);
-title('Detail Coefficients for Phase A');
-xlabel('Coefficient Index');
-ylabel('Amplitude');
+# Graph Plot
+plt.figure(figsize=(10, 8))
 
-subplot(4, 1, 2);
-plot(coefB);
-title('Detail Coefficients for Phase B');
-xlabel('Coefficient Index');
-ylabel('Amplitude');
+plt.subplot(4, 1, 1)
+plt.plot(coefA)
+plt.title('Detail Coefficients for Phase A')
+plt.xlabel('Coefficient Index')
+plt.ylabel('Amplitude')
 
-subplot(4, 1, 3);
-plot(coefC);
-title('Detail Coefficients for Phase C');
-xlabel('Coefficient Index');
-ylabel('Amplitude');
+plt.subplot(4, 1, 2)
+plt.plot(coefB)
+plt.title('Detail Coefficients for Phase B')
+plt.xlabel('Coefficient Index')
+plt.ylabel('Amplitude')
 
-subplot(4, 1, 4);
-plot(coefN);
-title('Detail Coefficients for Ground');
-xlabel('Coefficient Index');
-ylabel('Amplitude');
+plt.subplot(4, 1, 3)
+plt.plot(coefC)
+plt.title('Detail Coefficients for Phase C')
+plt.xlabel('Coefficient Index')
+plt.ylabel('Amplitude')
 
-%% Max Value of Coefficients
-m = 10 * max(coefA);
-n = 10 * max(coefB);
-p = 10 * max(coefC);
-q = 10 * max(coefN);
+plt.subplot(4, 1, 4)
+plt.plot(coefN)
+plt.title('Detail Coefficients for Ground')
+plt.xlabel('Coefficient Index')
+plt.ylabel('Amplitude')
 
-disp('Max Values:');
-disp(['Phase A: ', num2str(m)]);
-disp(['Phase B: ', num2str(n)]);
-disp(['Phase C: ', num2str(p)]);
-disp(['Ground: ', num2str(q)]);
+plt.tight_layout()
+plt.show()
 
-%% Conditions for Fault Types
-constant = 50; 
-neutral = 2; 
+# Max Value of Coefficients
+m = 10 * max(coefA)
+n = 10 * max(coefB)
+p = 10 * max(coefC)
+q = 10 * max(coefN)
 
-if m > constant  
-    if n > constant
-        if p > constant
-            if q > neutral
-                disp("Three Phase to Ground Fault is Detected");
-            end
-        end
-    end
-end
+print('Max Values:')
+print(f'Phase A: {m}')
+print(f'Phase B: {n}')
+print(f'Phase C: {p}')
+print(f'Ground: {q}')
 
-if m > constant
-    if n > constant
-        if p > constant
-            if q < neutral
-                disp("Three Phase Fault is Detected");
-            end
-        end
-    end
-end
+# Conditions for Fault Types
+constant = 50
+neutral = 2
 
-if m > constant
-    if n > constant
-        if p < constant
-            if q > neutral
-                disp("Double Line to Ground Fault (AB-G) is Detected");
-            end
-        end
-    end
-end
-
-if m > constant
-    if n < constant
-        if p > constant
-            if q > neutral
-                disp("Double Line to Ground Fault (AC-G) is Detected");
-            end
-        end
-    end
-end
-
-if m < constant
-    if n > constant
-        if p > constant
-            if q > neutral
-                disp("Double Line to Ground Fault (BC-G) is Detected");
-            end
-        end
-    end
-end
-
-if m > constant 
-    if n > constant
-        if p < constant
-            if q < neutral
-                disp("Line to Line Fault Between Phase A and B is Detected");
-            end
-        end
-    end
-end
-
-if m > constant
-    if n < constant
-        if p > constant
-            if q < neutral
-                disp("Line to Line Fault Between Phase A and C is Detected");
-            end
-        end
-    end
-end
-
-if m < constant 
-    if n > constant
-        if p > constant
-            if q < neutral
-                disp("Line to Line Fault Between Phase B and C is Detected");
-            end
-        end
-    end
-end
-
-if m > constant 
-    if n < constant
-        if p < constant
-            if q > neutral
-                disp("Single Line to Ground Fault in Phase A is Detected");
-            end
-        end
-    end
-end
-
-if m < constant
-    if n > constant
-        if p < constant
-            if q > neutral
-                disp("Single Line to Ground Fault in Phase B is Detected");
-            end
-        end
-    end
-end
-
-if m < constant
-    if n < constant
-        if p > constant
-            if q > neutral
-                disp("Single Line to Ground Fault in Phase C is Detected");
-            end
-        end
-    end
-end
-
-if m < constant
-    if n < constant
-        if p < constant
-            if q < neutral
-                disp("No Fault is Detected. System is Normal");
-            end
-        end
-    end
-end
-
-%% The End
+if m > constant and n > constant and p > constant and q > neutral:
+    print("Three Phase to Ground Fault is Detected")
+elif m > constant and n > constant and p > constant and q < neutral:
+    print("Three Phase Fault is Detected")
+elif m > constant and n > constant and p < constant and q > neutral:
+    print("Double Line to Ground Fault (AB-G) is Detected")
+elif m > constant and n < constant and p > constant and q > neutral:
+    print("Double Line to Ground Fault (AC-G) is Detected")
+elif m < constant and n > constant and p > constant and q > neutral:
+    print("Double Line to Ground Fault (BC-G) is Detected")
+elif m > constant and n > constant and p < constant and q < neutral:
+    print("Line to Line Fault Between Phase A and B is Detected")
+elif m > constant and n < constant and p > constant and q < neutral:
+    print("Line to Line Fault Between Phase A and C is Detected")
+elif m < constant and n > constant and p > constant and q < neutral:
+    print("Line to Line Fault Between Phase B and C is Detected")
+elif m > constant and n < constant and p < constant and q > neutral:
+    print("Single Line to Ground Fault in Phase A is Detected")
+elif m < constant and n > constant and p < constant and q > neutral:
+    print("Single Line to Ground Fault in Phase B is Detected")
+elif m < constant and n < constant and p > constant and q > neutral:
+    print("Single Line to Ground Fault in Phase C is Detected")
+elif m < constant and n < constant and p < constant and q < neutral:
+    print("No Fault is Detected. System is Normal")
