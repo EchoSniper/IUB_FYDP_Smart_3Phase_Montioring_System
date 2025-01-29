@@ -6,8 +6,6 @@ import json
 import time
 import pywt
 import numpy as np
-import csv
-import os 
 # Serial Port Communication Setup
 arduino_port = '/dev/ttyUSB0'  
 baud_rate = 9600
@@ -146,54 +144,6 @@ def detect_fault(m, n, p, q):
     
     return "No Fault Detected"
 lock = threading.Lock()
-
-import csv
-import os
-
-# Define the CSV filename
-csv_filename = "sensor_data.csv"
-
-# Define the header for the CSV file
-csv_header = ["Ground_Current", "Phase_C_Current", "Phase_B_Current", "Phase_A_Current", 
-              "Phase_A_Voltage", "Phase_B_Voltage", "Phase_C_Voltage", "DWT_Peak_A", 
-              "DWT_Peak_B", "DWT_Peak_C", "DWT_Peak_Ground", "Max_Current_A", "Max_Current_B", 
-              "Max_Current_C", "Max_Current_Ground", "Fault_Type", "Status"]
-
-# Check if the file exists, if not create it and write the header
-if not os.path.isfile(csv_filename):
-    with open(csv_filename, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        writer.writerow(csv_header)
-
-def save_to_csv():
-    # This function assumes 'sensor_data' is a dictionary containing the current values
-    try:
-        with open(csv_filename, mode='a', newline='') as file:
-            writer = csv.writer(file)
-            # Write the data from the sensor_data dictionary
-            row = [
-                sensor_data["Ground_Current"],
-                sensor_data["Phase_C_Current"],
-                sensor_data["Phase_B_Current"],
-                sensor_data["Phase_A_Current"],
-                sensor_data["Phase_A_Voltage"],
-                sensor_data["Phase_B_Voltage"],
-                sensor_data["Phase_C_Voltage"],
-                sensor_data["DWT_Peak_A"],
-                sensor_data["DWT_Peak_B"],
-                sensor_data["DWT_Peak_C"],
-                sensor_data["DWT_Peak_Ground"],
-                sensor_data["Max_Current_A"],
-                sensor_data["Max_Current_B"],
-                sensor_data["Max_Current_C"],
-                sensor_data["Max_Current_Ground"],
-                sensor_data["Fault_Type"],
-                sensor_data["Status"]
-            ]
-            writer.writerow(row)
-    except Exception as e:
-        print(f"Error saving to CSV: {e}")
-
 
 # Call save_to_csv in your loop where data is read and processed
 # HTML / Website Content 
@@ -513,9 +463,9 @@ def handle_client(client_socket):
 
 def start_server():
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.bind(("192.168.68.110", 2010))
+    server_socket.bind(("192.168.68.110", 2010)) #MAKE CHANGE AS REQUIRED 
     server_socket.listen(5)
-    print("Server running at http://192.168.68.110:2010/")
+    print("Server running at http://192.168.68.110:2010/") #MAKE CHANGE AS REQUIRED 
     while True:
         client_socket, _ = server_socket.accept()
         threading.Thread(target=handle_client, args=(client_socket,)).start()
@@ -523,4 +473,3 @@ def start_server():
 # Run the serial reader and server in separate threads
 threading.Thread(target=read_serial_data, daemon=True).start()
 start_server()
-
